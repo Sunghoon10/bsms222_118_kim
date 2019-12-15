@@ -1,0 +1,215 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+## Before modification
+
+# 1 Intro
+
+## 1.1 Assignment
+
+I was given for the list of mutations in SCN2A from neurodevelopmental patients and general population without any pediatric condition. The dataset includes annotations as to functional consequence, allele frequency and other biological domains, created by the Ensembl Variant Effect Predictor. With the dataset, you will need to visualize information and create graphics that tell stories on SCN2A.
+
+## 1.2 Basic concept of SCN2A
+
+### 1.2.1 What is the SCN2A gene and what does it do? What is the SCN2A gene and what does it do?
+
+**SCN2A** is the name of a gene that codes for part of the sodium or salt channel. This is an electrically activated gate in the brain which allows sodium in and out of neurones [cells that conduct nerve impulses], affecting the excitability of the
+brain. 
+
+### 1.2.2 What is a mutation in the SCN2A gene? What is a mutation in the SCN2A gene?
+
+DNA is the material that genes are made of. It can be thought of as individual letters which make up sentences (genes). A mutation is like a spelling mistake which leads to sentences not making sense. For each gene, everybody has two copies: one inherited from the father and one from the mother. With SCN2A, a 'spelling mistake' - a mutation - in one copy of the gene is enough to cause problems.
+The SCN2A gene is found on chromosome 2 in the band called 2q24.3. 
+
+### 1.2.3 Mutations in SCN2A can cause
+
+1. Benign familial neonatal /infantile seizures (BFNIS)
+ 
+2. A more severe epilepsy which may be given a name such as
+   Ohtahara syndrome, West syndrome, or epilepsy of infancy       with migrating focal seizures (see box on page 4)
+
+3. Autistic Spectrum disorder (ASD) without epilepsy
+
+4. Learning difficulties without epilepsy
+
+(source: https://www.rarechromo.org/media/information/Chromosome%20%202/SCN2A%20related%20conditions%20FTNW.pdf)
+
+# 1.2.4 Explain term
+
+**Domain** 
+단백질, 특히 분자량이 큰 구상단백질의 구성단위. 아미노산의 배열, 입체구조, 기능, 진화 등의 면에서 종합적인 영역이다. 통상 50~200개 정도의 아미노산잔기로 구성되어 공간적으로 독립된 밀집구조를 갖는 것으로 단백질가수분해효소에 의해 절단될 수도 있다. 복수의 도메인이 있는 단백질 기능은 도메인이 접촉된 부분에서 작용하는 경우가 많다.
+
+[네이버 지식백과] 도메인 [domain] (생명과학대사전, 초판 2008., 개정판 2014., 강영희)
+
+**cDNA**
+cDNA(complementary DNA)는 mRNA를 주형으로 역전사 효소와 DNA polymerase에 의해 합성된 DNA를 말하고, 이는 mRNA에 상보적 배열을 가지므로 상보적 DNA라고 불린다. 1차 산물인 RNA는 단일가닥으로 불안정하고 수명도 짧지만, 인위적으로 이중가닥으로 전환시킨 DNA는 비교적 안정하다. 진핵생물의 DNA는 유전정보가 담긴 짧은 엑손과 비암호화된 지역인 인트론(Intron)이 존재하는데, DNA가 mRNA가 되는 과정 중 스플라이싱(Splicing) 과정을 거치게 되어서 필요없는 인트론 부분은 떨어져 나가게 되므로, cDNA는 원래의 DNA에서 엑손(Exon)만 존재하는 DNA가 된다.
+
+(cDNA - wikipedia)
+
+# 2 Roading data
+
+```{r}
+d1 <- read.delim("table.scn2a.vep_20190916.filtered.txt")
+d2 <- read.delim("table.scn2a.vep_20190916.headers.txt")
+```
+
+```{r}
+library(dslabs)
+library(dplyr)
+library(tidyverse)
+library(ggpubr)
+library(ggplot2)
+library(ggridges)
+```
+
+# 3 Analyzing data
+
+```{r}
+head(d1)
+```
+
+I want to know degree of **Impact** according to **cDNA** and since not all have high impact, we will see which domain has this characteristic in particular..
+
+I think the position affects the impact, so I'll try to represent it as a plot.
+
+First, I organize the data so that only the factors I want to see appear.
+```{r}
+df = subset(d1, select = -c(Variant,Group,Gene,Feature,Consequence,CDS_position, Protein_position,Codons,VARIANT_CLASS,SYMBOL,BIOTYPE,SWISSPROT,SIFT,PolyPhen,EXON,gnomAD_AF,MPC,Amino_acids) )
+df
+```
+
+I will subtract the part marked **'-'** from the df data.
+
+```{r}
+d3 <- df %>% filter(!DOMAINS == '-')
+d3
+```
+
+# Let`s look about the degree of IMPACT according to cDNA_position
+```{r}
+d3$cDNA_position <- as.numeric(d3$cDNA_position)
+A <- as.numeric(d3$cDNA_position)
+d_basic <- ggplot(d3, aes(cDNA_position, IMPACT, col = IMPACT))+
+  geom_jitter(size=0.7, alpha=0.5)+
+   scale_color_brewer(palette = "Dark2")+
+  labs(title='The degree of IMPACT according to cDNA_position', x='cDNA_position', y='IMPACT')+
+   theme(plot.title = element_text(family = "serif", face = "bold", hjust = 0.5, size = 12, color = "darkblue"))
+   
+  
+d_basic
+   
+```
+
+From this data, we can see that the impacts exist order of moderate,low,high. But when you look at the high of this plot, you see any characteristic.
+
+```{r}
+d_basic+
+   annotate("rect", xmin = 300, xmax = 600, ymin = 0, ymax = "HIGH", alpha = .05, fill="red")+
+   annotate("text", x = 300, y = "HIGH", label = "the least number of beings",size = 3, col="red")
+   
+```
+
+I'll express this with a density plot to make it easier to see.
+```{r}
+d_basic1 <- ggplot(d3, aes(cDNA_position, IMPACT, col = IMPACT))+
+  geom_density_ridges(alpha = 0.5, bandwidth = 70)
+d_basic1
+```
+
+# Conclusion
+
+So, if we're going to use this graph to sort out this assignment, In a given data, SCN2A motion is caused by the 'spelling mistake' of the gene, especially the high IMPACT being HIGH is often expressed at each end of the cDNA, and the frequency is significantly low in the middle.
+
+I think further studies on the terminal stage of cDNA are needed to treat people who suffer from these diseases in the future.
+
+# After modification
+
+## feed back 1
+
+가독성을 높이기 위해 LOW, MODERATE, HIGH를 순서적으로 배치하는 것이 좋을 것 같다. 그래서 순서를 바꿔보았다 Y축에 명시되는 IMPACT의 순서를 바꿔보았다.
+```{r}
+d3$cDNA_position <- as.numeric(d3$cDNA_position)
+A <- as.numeric(d3$cDNA_position)
+p1 <- ggplot(d3, aes(cDNA_position, IMPACT, col = IMPACT))+
+  geom_jitter(size=0.7, alpha=0.5)+
+   scale_color_brewer(palette = "Dark2")+
+  labs(title='The degree of IMPACT according to cDNA_position', x='cDNA_position', y='IMPACT')+
+   theme(plot.title = element_text(family = "serif", face = "bold", hjust = 0.5, size = 12, color = "darkblue"))
+
+p1
+
+po<-d_basic+
+   annotate("rect", xmin = 300, xmax = 600, ymin = 0, ymax = "HIGH", alpha = .05, fill="red")+
+   annotate("text", x = 300, y = "HIGH", label = "the least number of beings",size = 3, col="red")+
+  scale_y_discrete(limits = c("HIGH", "MODERATE", "LOW"))
+
+po
+```
+
+```{r}
+p2 <- ggplot(d3, aes(cDNA_position, IMPACT, col = IMPACT))+
+  geom_density_ridges(alpha = 0.5, bandwidth = 70)
+
+pt<-p2+
+  scale_y_discrete(limits = c("HIGH", "MODERATE", "LOW"))
+
+pt
+```
+
+## feedback 2
+bar plot이나 histogram으로 보면 편할 것이다.
+
+high impact를 갖는 variant는 상대적으로 적게 분포하고 있음을 볼 수 있다. high impact를 갖는 cDNA position에 해당하는 variant의 영향을 구체적으로 분석한다면 이 gene의 variant로 인해 나타날 수 있는 유의미한 표현형적인 변화를 찾는 데 도움이 될 것이다.
+
+```{r}
+d3$cDNA_position <- as.numeric(d3$cDNA_position)
+A <- as.numeric(d3$cDNA_position)
+p3 <- ggplot(d3, aes(IMPACT, cDNA_position, col = IMPACT))+
+    geom_jitter(size=0.7, alpha=0.5)+
+  coord_cartesian(ylim = c(0,1100))+
+   scale_color_brewer(palette = "Dark2")+
+  labs(title='The degree of IMPACT according to cDNA_position', x='cDNA_position', y='IMPACT')+
+   theme(plot.title = element_text(family = "serif", face = "bold", hjust = 0.5, size = 12, color = "darkblue"))
+
+p3
+
+pth<-p3+
+   annotate("rect", xmin = 0, xmax = "HIGH", ymin = 300, ymax = 600, alpha = .05, fill="red")+
+   annotate("text", x = "HIGH", y = 300, label = "the least number of beings",size = 3, col="red")+
+  scale_x_discrete(limits = c("HIGH", "MODERATE", "LOW"))
+
+pth
+```
+
+```{r}
+p4 <- factor(as.factor(d3$IMPACT), levels = c("HIGH", "MODERATE", "LOW"))
+pfr<-d3 %>%
+  mutate(cDNA_position = as.numeric(cDNA_position)) %>%
+  filter(IMPACT %in% c("HIGH", "MODERATE", "LOW")) %>%
+  ggplot(aes(cDNA_position, ,fill = IMPACT)) +
+  geom_histogram(bw = 7, position = "dodge")+
+  ggtitle("The degree of IMPACT according to cDNA_position")+
+  theme(plot.title = element_text(color = "black", size = 10, face = "bold"))
+
+pfr
+
+```
+
+```{r}
+pf <- factor(as.factor(d3$IMPACT), levels = c("HIGH"))
+pf1<-d3 %>%
+  mutate(cDNA_position = as.numeric(cDNA_position)) %>%
+  filter(IMPACT %in% c("HIGH")) %>%
+  ggplot(aes(cDNA_position, ,fill = IMPACT)) +
+  geom_histogram(bw = 7, position = "dodge")+
+  ggtitle("The degree of high IMPACT according to cDNA_position")+
+  theme(plot.title = element_text(color = "black", size = 10, face = "bold"))
+
+pf1
+```
+
+##Conclusion
+
+피드백을 받으대로 수정해보았다. 우선 IMPACT를 순차적으로 배열하는 것만으로도 훨씬 이해하는데에 도움을 주었고, 원래 알아보고자 했던 "The degree of high IMPACT according to cDNA_position"를 다른 LOW,MODERATE factor들 없이 보니 더욱 번잡스럽지 않고 간결하게 볼 수 있었다.
+
