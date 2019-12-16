@@ -1,0 +1,138 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+## Q1
+From the dataset `heights` in the `dslabs` package, please describe the distribution of male and female heights. If you pick a female at  random, what is the probability that she is 61 inches or shorter?
+```{r}
+library(dslabs)
+library(tidyverse)
+library(ggplot2)
+
+data(heights)
+head(heights)
+x <- heights %>% 
+  filter(sex == "Female") %>% 
+  pull(height)
+x
+
+F <- function(a) mean(x<=a)
+m <- mean(x)
+s <- sd(x)
+pnorm(61, m, s)
+```
+
+```{r}
+heights %>% 
+  ggplot(aes(height, fill=sex)) + 
+  geom_density(alpha = 0.2) +
+  labs(title='Distribution of height by sex', x='height', y='density')+
+   theme(plot.title = element_text(family = "serif", face = "bold", hjust = 0.5, size = 12, color = "darkblue"))
+
+```
+그래프에서 보면 두 성별 모두 키가 60~70 inches 사이에 모여 있음을 알 수 있다. 또 알 수 있는 사실이라고 하면 Female의 heights 집중분포와 Male의 heights 집중분포를 비교했을 때 Male의 경우가 상대적으로 더 큰 쪽에 몰려있다. 즉 mean value가 Male이 높다는 것이다.
+
+## Q2
+For American Roulette, there are  19  reds, 16 blacks and 3 greens. The payout for winning on green is 15 dollars. You create a random variable that is the sum of your winnings after betting on green 1000 times. Start your code by setting the seed to 1. Describe your random variable(e.g. the expected value, the standard error). Then, create a Monte Carlo simulation that generates 1,000 outcomes of a random variable, and then describe your result. 
+```{r}
+set.seed(1)
+color <- rep(c("red", "black", "green"), c(19, 16, 3))
+n <- 1000
+X <- sample(ifelse(color == "green", 15, 0),  n, replace = TRUE)
+n <- 1000
+B <- 1000
+roulette <- function(n){
+  X <- sample(c(15,0), n, replace = TRUE, prob=c(3/38, 35/38))
+  sum(X)
+}
+S <- replicate(B, roulette(n))
+S
+```
+
+```{r}
+library(cowplot)
+
+p1<-data.frame(x_hat = x_hat) %>% ggplot(aes(x_hat)) +geom_histogram(color = "black", fill = "gray")
+p2<-data.frame(x_hat = x_hat) %>% ggplot(aes(sample = x_hat)) + geom_qq() + geom_qq_line()
+
+plot_grid(p1,p2)
+```
+
+
+
+## Q3
+From the poll example, we will create a Monte Carlo simulation for p=0.45. You will compare the sampling size(N) for 10, 1000, and the repeat size(B) for 100, 10000. So you should have four combinations(10N x 100B, 1000N x 100B, 10N x 10000B, 1000N x 10000B). Please describe your Monte Carlo simulation results, and compare four combinations. 
+```{r}
+p <- 0.45
+N <- 10
+
+x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+x_hat <- mean(x)
+
+B <- 100
+x_hat <- replicate(B, {
+  x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+  mean(x)
+})
+
+mean(x_hat)
+sd(x_hat)
+```
+
+```{r}
+p <- 0.45
+N <- 10
+
+x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+x_hat <- mean(x)
+
+B <- 10000
+x_hat <- replicate(B, {
+  x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+  mean(x)
+})
+
+mean(x_hat)
+sd(x_hat)
+```
+
+```{r}
+p <- 0.45
+N <- 1000
+
+x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+x_hat <- mean(x)
+
+B <- 100
+x_hat <- replicate(B, {
+  x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+  mean(x)
+})
+
+mean(x_hat)
+sd(x_hat)
+```
+
+```{r}
+p <- 0.45
+N <- 1000
+
+x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+x_hat <- mean(x)
+
+B <- 10000
+x_hat <- replicate(B, {
+  x <- sample(c(0,1), size = N, replace = TRUE, prob = c(1-p, p))
+  mean(x)
+})
+
+mean(x_hat)
+sd(x_hat)
+```
+
+```{r}
+plot2 <- data.frame(x_hat = x_hat) %>% ggplot(aes(x_hat)) +geom_bar(color = "black", fill = "white")
+
+plot2
+```
